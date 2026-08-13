@@ -89,10 +89,13 @@ jobs:
             -e BUBBLEWRAP_KEY_PASSWORD \
             ghcr.io/googlechromelabs/bubblewrap:latest build --skipPwaValidation
 
+      - name: Locate generated Android package
+        run: find twa -type f \( -name '*.apk' -o -name '*.aab' \) -print
+
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
           name: blepper-lifestyle-android-apk
-          path: twa/app-release-signed.apk
+          path: twa/**/*.apk
           if-no-files-found: error
           retention-days: 30
