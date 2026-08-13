@@ -65,25 +65,19 @@ jobs:
             echo "${{ secrets.BLEPPER_APK_KEYSTORE_BASE64 }}" | base64 --decode > twa/android.keystore
           else
             keytool -genkeypair -noprompt \
-              -keystore twa/android.keystore -storetype PKCS12 \
+              -keystore twa/android.keystore -storetype JKS \
               -storepass "${{ secrets.BLEPPER_APK_KEYSTORE_PASSWORD }}" \
               -keypass "${{ secrets.BLEPPER_APK_KEY_PASSWORD }}" \
               -alias blepper -keyalg RSA -keysize 2048 -validity 36500 \
               -dname "CN=blepper lifestyle, OU=Mobile, O=blepper lifestyle, L=Shanghai, ST=Shanghai, C=CN"
           fi
 
-      - name: Generate Android project
-        run: |
-          docker run --rm \
-            -v "$PWD/twa:/app" -w /app \
-            ghcr.io/googlechromelabs/bubblewrap:latest update
-
       - name: Build signed APK
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.BLEPPER_APK_KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.BLEPPER_APK_KEY_PASSWORD }}
         run: |
-          docker run --rm \
+          yes | docker run --rm -i \
             -v "$PWD/twa:/app" -w /app \
             -e BUBBLEWRAP_KEYSTORE_PASSWORD \
             -e BUBBLEWRAP_KEY_PASSWORD \
