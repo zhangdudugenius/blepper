@@ -84,11 +84,10 @@ jobs:
             }
           }
           EOF
-          for spec in "mipmap-mdpi 48" "mipmap-hdpi 72" "mipmap-xhdpi 96" "mipmap-xxhdpi 144" "mipmap-xxxhdpi 192"; do
-            set -- $spec
-            mkdir -p "android/app/src/main/res/$1"
-            convert "www/assets/cat-launcher-icon.png" -resize "$2x$2" "android/app/src/main/res/$1/ic_launcher.png"
-            cp "android/app/src/main/res/$1/ic_launcher.png" "android/app/src/main/res/$1/ic_launcher_round.png"
+          for density in mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
+            mkdir -p "android/app/src/main/res/$density"
+            cp "www/assets/cat-launcher-icon.png" "android/app/src/main/res/$density/ic_launcher.png"
+            cp "www/assets/cat-launcher-icon.png" "android/app/src/main/res/$density/ic_launcher_round.png"
           done
 
       - name: Build signed APK
