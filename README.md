@@ -13,6 +13,12 @@
 
 GitHub Pages 仅用于演示与 APK 构建入口。正式版应将身份认证、账目、凭证和备份放在独立的国内后端。
 
+## 生成 Android APK
+
+仓库中的 `Build Android APK` 工作流会在 GitHub 云端使用 Bubblewrap 打包 Pages 版，并将 `blepper-lifestyle-android-apk` 作为可下载的 APK 附件。签名密码只保存为 GitHub Actions Secret，绝不提交到公开仓库。首个演示包使用云端临时签名；正式分发前应配置长期、私密保存的发布签名密钥，以保证后续 APK 可以直接覆盖升级。
+
+注意：此 APK 是演示 PWA 的全屏安装包；首次打开和跨设备同步仍取决于网页部署与后端。完成正式后端前，请不要把真实财务数据录入公开演示网址。
+
 ## 本地运行
 
 在此目录运行：

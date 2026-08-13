@@ -1,0 +1,98 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up signing tool
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Trusted Web Activity manifest
+        run: |
+          mkdir -p twa
+          cat > twa/twa-manifest.json <<'EOF'
+          {
+            "packageId": "com.blepper.lifestyle",
+            "host": "zhangdudugenius.github.io",
+            "name": "blepper lifestyle",
+            "launcherName": "blepper lifestyle",
+            "display": "standalone",
+            "themeColor": "#14251e",
+            "themeColorDark": "#14251e",
+            "navigationColor": "#f7f7f2",
+            "navigationColorDark": "#14251e",
+            "navigationDividerColor": "#e4e8e2",
+            "navigationDividerColorDark": "#14251e",
+            "backgroundColor": "#f7f7f2",
+            "enableNotifications": false,
+            "startUrl": "/blepper/",
+            "iconUrl": "https://zhangdudugenius.github.io/blepper/assets/cat-launcher-icon.png",
+            "maskableIconUrl": "https://zhangdudugenius.github.io/blepper/assets/cat-launcher-icon.png",
+            "splashScreenFadeOutDuration": 300,
+            "signingKey": { "path": "./android.keystore", "alias": "blepper" },
+            "appVersion": "1.0.0",
+            "appVersionCode": 1,
+            "shortcuts": [],
+            "generatorApp": "bubblewrap-cli",
+            "webManifestUrl": "https://zhangdudugenius.github.io/blepper/manifest.webmanifest",
+            "fallbackType": "customtabs",
+            "features": {},
+            "alphaDependencies": { "enabled": false },
+            "enableSiteSettingsShortcut": true,
+            "isChromeOSOnly": false,
+            "isMetaQuest": false,
+            "fullScopeUrl": "https://zhangdudugenius.github.io/blepper/",
+            "minSdkVersion": 21,
+            "orientation": "default",
+            "fingerprints": [],
+            "additionalTrustedOrigins": [],
+            "retainedBundles": []
+          }
+          EOF
+          if [ -n "${{ secrets.BLEPPER_APK_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.BLEPPER_APK_KEYSTORE_BASE64 }}" | base64 --decode > twa/android.keystore
+          else
+            keytool -genkeypair -noprompt \
+              -keystore twa/android.keystore -storetype PKCS12 \
+              -storepass "${{ secrets.BLEPPER_APK_KEYSTORE_PASSWORD }}" \
+              -keypass "${{ secrets.BLEPPER_APK_KEY_PASSWORD }}" \
+              -alias blepper -keyalg RSA -keysize 2048 -validity 36500 \
+              -dname "CN=blepper lifestyle, OU=Mobile, O=blepper lifestyle, L=Shanghai, ST=Shanghai, C=CN"
+          fi
+
+      - name: Generate Android project
+        run: |
+          docker run --rm \
+            -v "$PWD/twa:/app" -w /app \
+            ghcr.io/googlechromelabs/bubblewrap:latest update
+
+      - name: Build signed APK
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.BLEPPER_APK_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.BLEPPER_APK_KEY_PASSWORD }}
+        run: |
+          docker run --rm \
+            -v "$PWD/twa:/app" -w /app \
+            -e BUBBLEWRAP_KEYSTORE_PASSWORD \
+            -e BUBBLEWRAP_KEY_PASSWORD \
+            ghcr.io/googlechromelabs/bubblewrap:latest build --skipPwaValidation
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: blepper-lifestyle-android-apk
+          path: twa/app-release-signed.apk
+          if-no-files-found: error
+          retention-days: 30
