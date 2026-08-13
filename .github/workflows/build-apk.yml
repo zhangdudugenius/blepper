@@ -47,7 +47,7 @@ jobs:
             "shortcuts": [],
             "generatorApp": "bubblewrap-cli",
             "webManifestUrl": "https://zhangdudugenius.github.io/blepper/manifest.webmanifest",
-            "fallbackType": "customtabs",
+            "fallbackType": "webview",
             "features": {},
             "alphaDependencies": { "enabled": false },
             "enableSiteSettingsShortcut": true,
