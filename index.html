@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#14251e" />
+    <meta name="description" content="blepper lifestyle 双人协作公司账本" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./assets/cat-launcher-icon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./custom.css" />
+    <title>blepper lifestyle</title>
+  </head>
+  <body>
+    <section id="authView" class="auth-view">
+      <div class="auth-card">
+        <img class="brand-mark" src="./assets/cat-launcher-icon.png" alt="blepper lifestyle 猫咪图标" />
+        <p class="eyebrow">BLEPPER LIFESTYLE</p>
+        <h1>progress over perfection</h1>
+        <p class="muted">收入、支出和凭证，随手记，随时看。</p>
+        <div class="auth-tabs" role="tablist">
+          <button class="active" data-auth-tab="login">登录</button>
+          <button data-auth-tab="register">注册</button>
+        </div>
+        <form id="authForm">
+          <label>手机号<input id="authPhone" inputmode="numeric" placeholder="请输入手机号" required /></label>
+          <label>密码<input id="authPassword" type="password" placeholder="至少 6 位" required /></label>
+          <label id="inviteField" class="hidden">邀请码（加入现有账本时填写）<input id="authInvite" placeholder="例如 BL-8K2M" /></label>
+          <button class="primary wide" id="authSubmit" type="submit">登录</button>
+        </form>
+        <button class="text-button wide" data-action="demo-login">进入演示账本</button>
+        <p class="auth-note">首次注册默认创建 Blepper 手机壳项目；第二位成员可填写邀请码加入。</p>
+      </div>
+    </section>
+
+    <div id="app" class="app hidden">
+      <header class="topbar">
+        <div class="brand"><img class="brand-icon" src="./assets/cat-launcher-icon.png" alt="" /><span>blepper lifestyle</span></div>
+        <div class="topbar-actions"><span id="syncState" class="sync-state">已保存</span><button id="userAvatar" class="avatar" data-action="show-profile" aria-label="个人与设置">林</button></div>
+      </header>
+
+      <main id="mainContent" class="content"></main>
+
+      <nav class="bottom-nav" aria-label="主导航">
+        <button data-nav="home" class="nav-item active"><span>⌂</span><small>首页</small></button>
+        <button data-nav="ledger" class="nav-item"><span>▤</span><small>账本</small></button>
+        <button data-action="new-record" class="add-button" aria-label="记一笔">＋</button>
+        <button data-nav="analysis" class="nav-item"><span>◔</span><small>分析</small></button>
+        <button data-nav="profile" class="nav-item"><span>◡</span><small>我的</small></button>
+      </nav>
+    </div>
+
+    <div id="recordModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="记一笔">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+          <div class="modal-header"><div><p class="eyebrow">BLEPPER LIFESTYLE</p><h2 id="recordModalTitle">记一笔</h2></div><button class="icon-button" data-action="close-record">×</button></div>
+        <form id="recordForm">
+          <input id="recordId" type="hidden" />
+          <div class="type-switch"><button type="button" class="active income" data-type="income">收入</button><button type="button" class="expense" data-type="expense">支出</button></div>
+          <input id="recordType" type="hidden" value="income" />
+          <label class="amount-field">金额 <span>¥</span><input id="recordAmount" inputmode="decimal" placeholder="0.00" required /></label>
+          <div class="form-grid">
+            <label>日期<input id="recordDate" type="date" required /></label>
+            <label>类目<select id="recordCategory" required></select></label>
+          </div>
+          <div class="form-grid"><label>项目<select id="recordProject"></select></label><label>凭证<input id="recordReceipt" type="file" accept="image/*" /></label></div>
+          <label>备注<textarea id="recordNote" rows="2" placeholder="例如：8 月平台货款"></textarea></label>
+          <p id="receiptHint" class="form-hint">金额超过 ¥2,000 时，系统会提醒你后补凭证。</p>
+          <button class="primary wide" type="submit">保存账目</button>
+        </form>
+      </div>
+    </div>
+    <input id="importFile" class="hidden" type="file" accept=".csv,text/csv" />
+    <div id="toast" class="toast hidden"></div>
+    <script src="./app.js?v=3"></script>
+  </body>
+</html>

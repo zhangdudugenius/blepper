@@ -1,0 +1,12 @@
+# Browser-local data and production-only configuration must never be committed.
+.DS_Store
+.env
+.env.*
+*.keystore
+*.jks
+*.apk
+*.aab
+dist/
+build/
+android/
+
