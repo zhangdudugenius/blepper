@@ -13,83 +13,94 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up signing tool
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Prepare Trusted Web Activity manifest
+      - name: Set up Android build tools
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build dependencies
+        run: yes | sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Prepare an offline native app shell
+        env:
+          BLEPPER_APK_KEYSTORE_PASSWORD: ${{ secrets.BLEPPER_APK_KEYSTORE_PASSWORD }}
+          BLEPPER_APK_KEY_PASSWORD: ${{ secrets.BLEPPER_APK_KEY_PASSWORD }}
         run: |
-          mkdir -p twa
-          cat > twa/twa-manifest.json <<'EOF'
+          mkdir -p native-shell/www
+          cp index.html app.js styles.css custom.css manifest.webmanifest sw.js native-shell/www/
+          cp -R assets native-shell/www/assets
+          echo "${{ secrets.BLEPPER_APK_KEYSTORE_BASE64 }}" | base64 --decode > native-shell/android.keystore
+          cd native-shell
+          cat > package.json <<'EOF'
           {
-            "packageId": "com.blepper.lifestyle",
-            "host": "zhangdudugenius.github.io",
-            "name": "blepper lifestyle",
-            "launcherName": "blepper lifestyle",
-            "display": "standalone",
-            "themeColor": "#14251e",
-            "themeColorDark": "#14251e",
-            "navigationColor": "#f7f7f2",
-            "navigationColorDark": "#14251e",
-            "navigationDividerColor": "#e4e8e2",
-            "navigationDividerColorDark": "#14251e",
-            "backgroundColor": "#f7f7f2",
-            "enableNotifications": false,
-            "startUrl": "/blepper/",
-            "iconUrl": "https://zhangdudugenius.github.io/blepper/assets/cat-launcher-icon.png",
-            "maskableIconUrl": "https://zhangdudugenius.github.io/blepper/assets/cat-launcher-icon.png",
-            "splashScreenFadeOutDuration": 300,
-            "signingKey": { "path": "./android.keystore", "alias": "blepper" },
-            "appVersion": "1.0.0",
-            "appVersionCode": 1,
-            "shortcuts": [],
-            "generatorApp": "bubblewrap-cli",
-            "webManifestUrl": "https://zhangdudugenius.github.io/blepper/manifest.webmanifest",
-            "fallbackType": "webview",
-            "features": {},
-            "alphaDependencies": { "enabled": false },
-            "enableSiteSettingsShortcut": true,
-            "isChromeOSOnly": false,
-            "isMetaQuest": false,
-            "fullScopeUrl": "https://zhangdudugenius.github.io/blepper/",
-            "minSdkVersion": 21,
-            "orientation": "default",
-            "fingerprints": [],
-            "additionalTrustedOrigins": [],
-            "retainedBundles": []
+            "name": "blepper-lifestyle-android",
+            "private": true,
+            "dependencies": {
+              "@capacitor/android": "^7.0.0",
+              "@capacitor/core": "^7.0.0"
+            },
+            "devDependencies": {
+              "@capacitor/cli": "^7.0.0"
+            }
           }
           EOF
-          if [ -n "${{ secrets.BLEPPER_APK_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.BLEPPER_APK_KEYSTORE_BASE64 }}" | base64 --decode > twa/android.keystore
-          else
-            keytool -genkeypair -noprompt \
-              -keystore twa/android.keystore -storetype JKS \
-              -storepass "${{ secrets.BLEPPER_APK_KEYSTORE_PASSWORD }}" \
-              -keypass "${{ secrets.BLEPPER_APK_KEY_PASSWORD }}" \
-              -alias blepper -keyalg RSA -keysize 2048 -validity 36500 \
-              -dname "CN=blepper lifestyle, OU=Mobile, O=blepper lifestyle, L=Shanghai, ST=Shanghai, C=CN"
-          fi
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.blepper.lifestyle",
+            "appName": "blepper lifestyle",
+            "webDir": "www",
+            "server": { "androidScheme": "https" }
+          }
+          EOF
+          npm install --no-audit --no-fund
+          npx cap add android
+          npx cap copy android
+          cp android.keystore android/app/blepper.keystore
+          cat >> android/app/build.gradle <<'EOF'
+
+          android {
+            signingConfigs {
+              release {
+                storeFile file("blepper.keystore")
+                storePassword System.getenv("BLEPPER_APK_KEYSTORE_PASSWORD")
+                keyAlias "blepper"
+                keyPassword System.getenv("BLEPPER_APK_KEY_PASSWORD")
+                storeType "PKCS12"
+              }
+            }
+            buildTypes {
+              release {
+                signingConfig signingConfigs.release
+              }
+            }
+          }
+          EOF
+          for spec in "mipmap-mdpi 48" "mipmap-hdpi 72" "mipmap-xhdpi 96" "mipmap-xxhdpi 144" "mipmap-xxxhdpi 192"; do
+            set -- $spec
+            mkdir -p "android/app/src/main/res/$1"
+            convert "www/assets/cat-launcher-icon.png" -resize "$2x$2" "android/app/src/main/res/$1/ic_launcher.png"
+            cp "android/app/src/main/res/$1/ic_launcher.png" "android/app/src/main/res/$1/ic_launcher_round.png"
+          done
 
       - name: Build signed APK
         env:
-          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.BLEPPER_APK_KEYSTORE_PASSWORD }}
-          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.BLEPPER_APK_KEY_PASSWORD }}
-        run: |
-          yes | docker run --rm -i \
-            -v "$PWD/twa:/app" -w /app \
-            -e BUBBLEWRAP_KEYSTORE_PASSWORD \
-            -e BUBBLEWRAP_KEY_PASSWORD \
-            ghcr.io/googlechromelabs/bubblewrap:latest build --skipPwaValidation
-
-      - name: Locate generated Android package
-        run: find twa -type f \( -name '*.apk' -o -name '*.aab' \) -print
+          BLEPPER_APK_KEYSTORE_PASSWORD: ${{ secrets.BLEPPER_APK_KEYSTORE_PASSWORD }}
+          BLEPPER_APK_KEY_PASSWORD: ${{ secrets.BLEPPER_APK_KEY_PASSWORD }}
+        run: cd native-shell/android && ./gradlew assembleRelease --no-daemon
 
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
           name: blepper-lifestyle-android-apk
-          path: twa/**/*.apk
+          path: native-shell/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
